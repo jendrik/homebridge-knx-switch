@@ -1,5 +1,7 @@
 import { API, StaticPlatformPlugin, Logger, PlatformConfig, AccessoryPlugin, Service, Characteristic, uuid } from 'homebridge';
 
+import fakegato from 'fakegato-history';
+
 import { Connection } from 'knx';
 
 import { SwitchAccessory } from './accessory';
@@ -10,6 +12,8 @@ export class SwitchPlatform implements StaticPlatformPlugin {
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
   public readonly uuid: typeof uuid = this.api.hap.uuid;
 
+  public readonly fakeGatoHistoryService;
+
   public readonly connection: Connection;
 
   private readonly devices: SwitchAccessory[] = [];
@@ -19,6 +23,7 @@ export class SwitchPlatform implements StaticPlatformPlugin {
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    this.fakeGatoHistoryService = fakegato(this.api);
 
     // connect
     this.connection = new Connection({

@@ -1,6 +1,7 @@
 import { AccessoryConfig, AccessoryPlugin, CharacteristicValue, Service } from 'homebridge';
 
 import { Datapoint } from 'knx';
+import fakegato from 'fakegato-history';
 
 import { PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_DISPLAY_NAME } from './settings';
 
@@ -14,7 +15,10 @@ export class SwitchAccessory implements AccessoryPlugin {
   private readonly listen_status: string;
 
   private readonly switchService: Service;
+  private readonly loggingService: fakegato;
   private readonly informationService: Service;
+
+  private switchStatus: boolean;
 
   constructor(
     private readonly platform: SwitchPlatform,
@@ -36,6 +40,10 @@ export class SwitchAccessory implements AccessoryPlugin {
 
     this.switchService = new platform.Service.Switch(this.name);
 
+    this.loggingService = new platform.fakeGatoHistoryService('switch', this, { storage: 'fs', log: platform.log });
+
+    this.switchStatus = false;
+
     const dp_listen_status = new Datapoint({
       ga: this.listen_status,
       dpt: 'DPT1.001',
@@ -47,22 +55,30 @@ export class SwitchAccessory implements AccessoryPlugin {
       dpt: 'DPT1.001',
     }, platform.connection);
 
-    dp_listen_status.on('change', (oldValue: number, newValue: number) => {
-      platform.log.info(`Light Status: ${newValue}`);
-      this.switchService.getCharacteristic(platform.Characteristic.On).updateValue(newValue);
+    dp_listen_status.on('change', (oldValue: boolean, newValue: boolean) => {
+      this.switchStatus = newValue;
+      this.switchService.getCharacteristic(platform.Characteristic.On).updateValue(this.switchStatus);
+      this.loggingService._addEntry({ time: Math.round(new Date().valueOf() / 1000), status: this.switchStatus });
     });
 
     this.switchService.getCharacteristic(platform.Characteristic.On)
       .onSet(async (value: CharacteristicValue) => {
-        platform.log.info(`Set Status: ${value}`);
-        dp_set_status.write(Boolean(value));
+        this.switchStatus = Boolean(value);
+        dp_set_status.write(this.switchStatus);
+        this.loggingService._addEntry({ time: Math.round(new Date().valueOf() / 1000), status: this.switchStatus });
       });
+
+    // log switch state every 10 minutes
+    setInterval(async () => {
+      this.loggingService._addEntry({ time: Math.round(new Date().valueOf() / 1000), status: this.switchStatus });
+    }, 60 * 10 * 1000);
   }
 
   getServices(): Service[] {
     return [
       this.informationService,
       this.switchService,
+      this.loggingService,
     ];
   }
 }

@@ -1,7 +1,7 @@
 {
   "displayName": "KNX Switch",
   "name": "@jendrik/homebridge-knx-switch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Homebridge plugin for KNX Switches",
   "license": "Apache-2.0",
   "repository": {
@@ -38,6 +38,7 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "fakegato-history": "^0.6.4",
     "knx": "^2.5.2"
   }
 }
