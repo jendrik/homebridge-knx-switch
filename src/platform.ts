@@ -1,16 +1,14 @@
-import { API, StaticPlatformPlugin, Logger, PlatformConfig, AccessoryPlugin, Service, Characteristic, uuid } from 'homebridge';
+import type { API, StaticPlatformPlugin, Logging, PlatformConfig, AccessoryPlugin, Service, Characteristic, uuid } from 'homebridge';
 
 import fakegato from 'fakegato-history';
-
 import { Connection } from 'knx';
 
-import { SwitchAccessory } from './accessory';
-
+import { SwitchAccessory } from './accessory.js';
 
 export class SwitchPlatform implements StaticPlatformPlugin {
-  public readonly Service: typeof Service = this.api.hap.Service;
-  public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
-  public readonly uuid: typeof uuid = this.api.hap.uuid;
+  public readonly Service: typeof Service;
+  public readonly Characteristic: typeof Characteristic;
+  public readonly uuid: typeof uuid;
 
   public readonly fakeGatoHistoryService;
 
@@ -19,10 +17,14 @@ export class SwitchPlatform implements StaticPlatformPlugin {
   private readonly devices: SwitchAccessory[] = [];
 
   constructor(
-    public readonly log: Logger,
+    public readonly log: Logging,
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
+    this.Service = api.hap.Service;
+    this.Characteristic = api.hap.Characteristic;
+    this.uuid = api.hap.uuid;
+
     this.fakeGatoHistoryService = fakegato(this.api);
 
     // connect
@@ -30,19 +32,24 @@ export class SwitchPlatform implements StaticPlatformPlugin {
       ipAddr: config.ip ?? '224.0.23.12',
       ipPort: config.port ?? 3671,
       handlers: {
-        connected: function () {
+        connected: () => {
           log.info('KNX connected');
         },
-        error: function (connstatus: unknown) {
+        error: (connstatus: unknown) => {
           log.error(`KNX status: ${connstatus}`);
         },
       },
     });
 
     // read devices
-    config.devices.forEach(element => {
-      if (element.name !== undefined && element.listen_status && element.set_status) {
-        this.devices.push(new SwitchAccessory(this, element));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    config.devices.forEach((element: any) => {
+      if (element.name && element.listen_status && element.set_status) {
+        this.devices.push(new SwitchAccessory(this, {
+          name: element.name,
+          set_status: element.set_status,
+          listen_status: element.listen_status,
+        }));
       }
     });
   }

@@ -1,11 +1,9 @@
-import { AccessoryConfig, AccessoryPlugin, CharacteristicValue, Service } from 'homebridge';
+import type { AccessoryPlugin, CharacteristicValue, Service } from 'homebridge';
 
 import { Datapoint } from 'knx';
-import fakegato from 'fakegato-history';
 
-import { PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_DISPLAY_NAME } from './settings';
-
-import { SwitchPlatform } from './platform';
+import { PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_DISPLAY_NAME } from './settings.js';
+import type { SwitchPlatform } from './platform.js';
 
 export class SwitchAccessory implements AccessoryPlugin {
   private readonly uuid_base: string;
@@ -15,14 +13,15 @@ export class SwitchAccessory implements AccessoryPlugin {
   private readonly listen_status: string;
 
   private readonly switchService: Service;
-  private readonly loggingService: fakegato;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly loggingService: any;
   private readonly informationService: Service;
 
   private switchStatus: boolean;
 
   constructor(
     private readonly platform: SwitchPlatform,
-    private readonly config: AccessoryConfig,
+    private readonly config: { name: string; set_status: string; listen_status: string },
   ) {
     this.name = config.name;
     this.set_status = config.set_status;
@@ -69,7 +68,7 @@ export class SwitchAccessory implements AccessoryPlugin {
       });
 
     // log switch state every 10 minutes
-    setInterval(async () => {
+    setInterval(() => {
       this.loggingService._addEntry({ time: Math.round(new Date().valueOf() / 1000), status: this.switchStatus });
     }, 60 * 10 * 1000);
   }
